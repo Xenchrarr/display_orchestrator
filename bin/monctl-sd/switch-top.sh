@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -e
 
-/home/emil/.local/bin/monctl preset switch_top
+monctl preset orchestrator_top
 

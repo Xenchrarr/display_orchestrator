@@ -1,324 +1,157 @@
-# display_orchestrator
+# MonCtl
 
+Monitor input switcher for Linux using DDC/CI.
+Controls multiple monitors via `ddcutil`, with a CLI, a GTK4/libadwaita GUI, and optional Stream Deck integration.
 
-copy file:
-/etc/udev/rules.d/99-streamdeck.rule
+**Default physical layout:**
 
-
-```
-sudo dnf install ddcutil python3 python3-pip python3-gobject gtk4 libadwaita
-```
-
-
-
-
-
-# MonCtl Setup and Migration Guide
-
-
-This guide sets up the full monitor-control stack on a new Linux machine, starting from `git clone`.
-
-
-It assumes the repository already contains:
-
-- the `monctl` project
-- your `config.yml`
-- your `.local/bin` helper scripts
-
-
-It is written for Fedora + GNOME, based on the setup built in this project.
-
+| Name | Position |
+|------|----------|
+| `top` | Upper-left monitor |
+| `bottom` | Lower-left monitor |
+| `right` | Large right monitor |
 
 ---
 
+## Repository structure
 
-## What this setup does
-
-
-The system gives you:
-
-- individual DDC/CI control of each monitor
-- a GTK GUI for switching inputs
-- CLI presets via `monctl`
-- StreamController integration through shell scripts
-- a layout matching your desk:
-  - `top` = upper-left monitor
-  - `bottom` = lower-left monitor
-  - `right` = large monitor on the right
-
-
----
-
-
-## Repository contents expected
-
-
-Typical structure:
-
-
-```text
+```
 .
 ├── pyproject.toml
-├── src/
-│   └── monctl/
-│       ├── __init__.py
-│       ├── app.py
-│       ├── cli.py
-│       ├── config.py
-│       ├── ddc.py
-│       └── ui.py
-├── config/
-│   └── config.yml
-└── local-bin/
-    └── monctl-sd/
-        └── apply.sh
+├── config.yml                  ← example config (copy to ~/.config/monctl/)
+├── 99-streamdeck.rules         ← udev rule for Stream Deck
+├── bin/
+│   ├── monctl                  ← CLI entry point (installed by pip)
+│   ├── monctl-gui              ← GUI entry point (installed by pip)
+│   └── monctl-sd/              ← Stream Deck helper scripts
+│       ├── apply.sh            ← apply a named preset
+│       ├── set.sh              ← set one monitor to one input
+│       ├── desktop-all.sh
+│       ├── laptop-all.sh
+│       └── ...
+└── src/
+    └── monctl/
+        ├── cli.py
+        ├── app.py
+        ├── ui.py
+        ├── config.py
+        └── ddc.py
 ```
-
-
-If your repo layout differs, adjust the copy commands below.
-
 
 ---
 
+## 1. Install system packages
 
-## 1. Clone the repo
-
+Fedora / RHEL:
 
 ```bash
-git clone <your-repo-url> ~/Workspace/Projects/monctl
-cd ~/Workspace/Projects/monctl
+sudo dnf install -y ddcutil python3 python3-pip python3-gobject gtk4 libadwaita libnotify
 ```
-
 
 ---
 
+## 2. Grant DDC/CI access
 
-## 2. Install system packages
-
-
-Fedora:
-
-
-```bash
-sudo dnf install -y   ddcutil   python3   python3-pip   python3-gobject   gtk4   libadwaita   libnotify
-```
-
-
----
-
-
-## 3. Enable DDC access
-
-
-Add your user to the `i2c` group:
-
+Add your user to the `i2c` group so `ddcutil` can talk to monitors without root:
 
 ```bash
 sudo usermod -aG i2c $USER
 ```
 
-
 Log out and back in before continuing.
 
+Also make sure **DDC/CI is enabled** in the OSD of every monitor (usually under Personalize or Input settings).
 
 ---
 
+## 3. Install the Python package
 
-## 4. Make sure DDC/CI is enabled on all monitors
-
-
-On each Dell monitor:
-
-- open the monitor OSD
-- find **DDC/CI**
-- set it to **On**
-
-
-Without this, `ddcutil` may not work reliably.
-
-
----
-
-
-## 5. Install the Python project for your user
-
-
-Install from the repo root:
-
+From the repo root:
 
 ```bash
 pip install --user -e .
 ```
 
+This installs two entry points into `~/.local/bin/`:
 
-This should create:
-
-
-```text
+```
 ~/.local/bin/monctl
 ~/.local/bin/monctl-gui
 ```
 
-
-Verify:
-
+Make sure `~/.local/bin` is on your `$PATH`. Verify:
 
 ```bash
-~/.local/bin/monctl --help
-~/.local/bin/monctl-gui
+monctl --help
 ```
-
 
 ---
 
-
-## 6. Install your config file
-
-
-Create the config directory:
-
+## 4. Install the config file
 
 ```bash
 mkdir -p ~/.config/monctl
+cp config.yml ~/.config/monctl/config.yml
 ```
 
-
-Copy the repo config into place:
-
-
-```bash
-cp config/config.yml ~/.config/monctl/config.yml
-```
-
-
-This copied file is only a starting point.
-
-You must still verify bus numbers and input codes on the current machine.
-
+The config at `~/.config/monctl/config.yml` is the live config that MonCtl reads at runtime. The file in the repo is only a reference — you must update it with the correct bus numbers and input codes for your machine (see steps 5–7).
 
 ---
 
+## 5. Detect monitor bus numbers
 
-## 7. Install Stream Deck helper scripts
-
-
-Create the target directory:
-
-
-```bash
-mkdir -p ~/.local/bin/monctl-sd
-```
-
-
-Copy scripts from the repo:
-
-
-```bash
-cp -r local-bin/monctl-sd/* ~/.local/bin/monctl-sd/
-chmod +x ~/.local/bin/monctl-sd/*
-```
-
-
-If you only use a single script, the important file is:
-
-
-```text
-~/.local/bin/monctl-sd/apply.sh
-```
-
-
----
-
-
-## 8. Re-scan monitor buses on this machine
-
-
-Do not trust old bus numbers.
-
-Re-detect them on the new machine:
-
+Run:
 
 ```bash
 ddcutil detect
 ```
 
+Each monitor will be listed with an I2C bus number. Map them to your physical layout:
 
-Create a mapping table:
+| Physical monitor | Config key | Bus |
+|------------------|------------|-----|
+| Upper-left       | `top`      | ?   |
+| Lower-left       | `bottom`   | ?   |
+| Right            | `right`    | ?   |
 
-
-| Physical monitor | Logical name | Bus |
-|---|---|---|
-| Upper-left | `top` | ? |
-| Lower-left | `bottom` | ? |
-| Right large | `right` | ? |
-
-
-Then verify each bus individually:
-
+Verify a bus responds:
 
 ```bash
-ddcutil -b BUS getvcp 10
-ddcutil -b BUS getvcp 60 --terse
+ddcutil -b BUS getvcp 10        # brightness — should return a value
+ddcutil -b BUS getvcp 60 --terse  # current input code
 ```
-
-
-Replace `BUS` with the detected bus number.
-
 
 ---
 
+## 6. Find input codes for each monitor
 
-## 9. Re-scan input codes for each monitor
+Each physical input port has a numeric code. Codes differ between monitor models.
 
-
-This is required because input codes can differ per monitor.
-
-
-For each monitor bus:
-
+For each monitor bus, list supported inputs:
 
 ```bash
-ddcutil -b BUS capabilities
+ddcutil -b BUS capabilities | grep -A5 "Feature: 60"
+```
+
+Then manually switch the monitor to each source you use and read back the active code:
+
+```bash
 ddcutil -b BUS getvcp 60 --terse
 ```
 
+Build a table and fill in `~/.config/monctl/config.yml`:
 
-Now manually switch the monitor to each connected source and record the code.
-
-
-For each monitor, test these sources if connected:
-
-- `Desktop`
-- `Laptop`
-- `Orchestrator`
-- `Switch`
-
-
-Build a table like this:
-
-
-| Monitor | Desktop | Laptop | Orchestrator | Switch |
-|---|---|---|---|---|
-| top | `0x??` | `0x??` | `0x??` | `0x??` |
-| bottom | `0x??` | `0x??` | `0x??` | maybe none |
-| right | `0x??` | `0x??` | `0x??` | maybe none |
-
+| Monitor  | Desktop | Laptop | Switch | Orchestrator |
+|----------|---------|--------|--------|--------------|
+| `top`    | `0x??`  | `0x??` | `0x??` | `0x??`       |
+| `bottom` | `0x??`  | `0x??` | —      | `0x??`       |
+| `right`  | `0x??`  | `0x??` | —      | `0x??`       |
 
 ---
 
+## 7. Update config.yml
 
-## 10. Update `~/.config/monctl/config.yml`
-
-
-Edit the file and update:
-
-- `bus` for each monitor
-- input codes for each source
-- presets as needed
-
-
-Typical shape:
-
+Edit `~/.config/monctl/config.yml`. The format is:
 
 ```yaml
 monitors:
@@ -326,35 +159,27 @@ monitors:
     name: Top Dell
     bus: 9
     inputs:
-      Desktop: "0x??"
-      Laptop: "0x??"
-      Orchestrator: "0x??"
-      Switch: "0x??"
+      Desktop: "0x10"
+      Laptop: "0x11"
+      Orchestrator: "0x0f"
+      Switch: "0x13"
 
   bottom:
     name: Bottom Dell
     bus: 6
     inputs:
-      Desktop: "0x??"
-      Laptop: "0x??"
-      Orchestrator: "0x??"
+      Desktop: "0x12"
+      Laptop: "0x11"
 
   right:
     name: Right Dell
     bus: 7
     inputs:
-      Desktop: "0x??"
-      Laptop: "0x??"
-      Orchestrator: "0x??"
+      Desktop: "0x0f"
+      Laptop: "0x12"
+      Switch: "0x13"
 
 presets:
-  orchestrator_all:
-    name: Orchestrator on all screens
-    set:
-      top: Orchestrator
-      bottom: Orchestrator
-      right: Orchestrator
-
   desktop_all:
     name: Desktop on all screens
     set:
@@ -369,118 +194,66 @@ presets:
       bottom: Laptop
       right: Laptop
 
-  desktop_main:
-    name: Desktop main
+  split_d2_l1:
+    name: Desktop 2 + Laptop 1
     set:
       top: Laptop
       bottom: Desktop
       right: Desktop
 
-  laptop_main:
-    name: Laptop main
+  split_d1_l2:
+    name: Desktop 1 + Laptop 2
     set:
       top: Desktop
       bottom: Laptop
       right: Laptop
 
-  switch_top:
-    name: Switch top
+  orchestrator_top:
+    name: Orchestrator on top
     set:
-      top: Switch
-      bottom: Orchestrator
-      right: Orchestrator
+      top: Orchestrator
 ```
 
-
-Adjust values and preset names to match your real setup.
-
+Add or remove presets and inputs to match your real sources.
 
 ---
 
+## 8. Verify CLI control
 
-## 11. Verify individual monitor control
-
-
-Before using presets, prove that each monitor can be controlled independently.
-
-
-Examples:
-
+Test each monitor individually:
 
 ```bash
-monctl set top Orchestrator
-monctl set bottom Desktop
-monctl set right Laptop
+monctl set top Desktop
+monctl set bottom Laptop
+monctl set right Desktop
 ```
 
+Only the named monitor should change. If the wrong monitor changes, fix the bus mapping in config.
 
-Acceptance criteria:
+Test a preset:
 
-- only the intended monitor changes
-- no two monitors are swapped
-- all input labels point to the correct real source
-
-
-If a command affects the wrong monitor, fix the bus mapping first.
-
+```bash
+monctl preset desktop_all
+monctl preset laptop_all
+```
 
 ---
 
-
-## 12. Test mixed layouts
-
-
-Validate that the setup can control all monitors independently.
-
-
-Examples to test:
-
-- top → `Switch`, bottom → `Desktop`, right → `Orchestrator`
-- top → `Laptop`, bottom → `Orchestrator`, right → `Desktop`
-- top → `Desktop`, bottom → `Laptop`, right → `Laptop`
-
-
-If these all work, your control plane is correct.
-
-
----
-
-
-## 13. Launch the GUI
-
-
-Run:
-
+## 9. Launch the GUI
 
 ```bash
 monctl-gui
 ```
 
+The window shows a card for each monitor with buttons for each configured input. Clicking a button sends the DDC command immediately. The active input subtitle updates after the switch.
 
-Verify:
-
-- the physical layout is correct
-- the monitor cards are shown as `top`, `bottom`, `right`
-- the active input subtitle updates
-- clicking a button changes only the selected monitor
-
+The **Presets** menu in the header bar applies full layouts in one click. The reload button re-reads `~/.config/monctl/config.yml` without restarting.
 
 ---
 
+## 10. Optional: desktop launcher
 
-## 14. Optional: create a desktop launcher
-
-
-Create:
-
-
-```text
-~/.local/share/applications/monctl.desktop
-```
-
-
-With this content:
-
+Create `~/.local/share/applications/monctl.desktop`:
 
 ```ini
 [Desktop Entry]
@@ -492,133 +265,73 @@ Terminal=false
 Categories=Utility;
 ```
 
-
 ---
 
+## 11. Stream Deck integration
 
-## 15. Set up StreamController
-
-
-Make sure your Stream Deck is detected on this machine and that StreamController can run commands.
-
-
-Your buttons should call:
-
+### Install helper scripts
 
 ```bash
-/home/emil/.local/bin/monctl-sd/apply.sh orchestrator_all
-/home/emil/.local/bin/monctl-sd/apply.sh desktop_all
-/home/emil/.local/bin/monctl-sd/apply.sh laptop_all
-/home/emil/.local/bin/monctl-sd/apply.sh desktop_main
-/home/emil/.local/bin/monctl-sd/apply.sh laptop_main
-/home/emil/.local/bin/monctl-sd/apply.sh switch_top
+mkdir -p ~/.local/bin/monctl-sd
+cp bin/monctl-sd/* ~/.local/bin/monctl-sd/
+chmod +x ~/.local/bin/monctl-sd/*
 ```
 
+### Wire up buttons in StreamController
 
-If your preset names differ, update the command arguments.
+Each button should run a shell command. Use the wrapper scripts:
 
+| Script | What it does |
+|--------|--------------|
+| `apply.sh <preset>` | Apply a named preset from config |
+| `set.sh <monitor> <input>` | Set one monitor to one input |
+| `desktop-all.sh` | Shortcut for `monctl preset desktop_all` |
+| `laptop-all.sh` | Shortcut for `monctl preset laptop_all` |
 
----
-
-
-## 16. Optional: Stream Deck permissions
-
-
-If the Stream Deck is not detected on the new machine, recreate the udev rule:
-
-
-```text
-/etc/udev/rules.d/99-streamdeck.rules
-```
-
-
-Typical example:
-
-
-```udev
-ACTION=="add|change", SUBSYSTEM=="hidraw", ENV{ID_VENDOR_ID}=="0fd9", ENV{ID_MODEL_ID}=="006d", MODE="0666"
-```
-
-
-Then reload rules and replug the device:
-
+Example button command:
 
 ```bash
+/home/YOUR_USER/.local/bin/monctl-sd/apply.sh desktop_all
+```
+
+### Stream Deck udev rule
+
+If the Stream Deck is not detected, install the udev rule from the repo:
+
+```bash
+sudo cp 99-streamdeck.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
+Then replug the device.
 
-If StreamController is installed as Flatpak, you may also need:
-
+If running StreamController as a Flatpak:
 
 ```bash
 flatpak override --user --device=all --filesystem=home com.github.StreamController.StreamController
 ```
 
+---
+
+## CLI reference
+
+```
+monctl set <monitor> <input>     Set one monitor to a named input
+monctl preset <preset>           Apply a full preset from config
+```
+
+Both commands exit `0` on success, non-zero on failure. Output is one line per monitor showing `OK` or `FAIL`.
 
 ---
 
+## Troubleshooting
 
-## 17. Final acceptance checklist
-
-
-You are done when all of these are true:
-
-
-### Monitor discovery
-
-- `ddcutil detect` finds all three monitors
-- each monitor has the correct bus number
-
-
-### Input mapping
-
-- each source has a known input code on each monitor
-- `config.yml` contains correct values
-
-
-### App functionality
-
-- `monctl set ...` works
-- `monctl preset ...` works
-- `monctl-gui` works and shows correct active inputs
-
-
-### Independent control
-
-- `top` changes independently
-- `bottom` changes independently
-- `right` changes independently
-- mixed layouts work correctly
-
-
-### Stream Deck integration
-
-- StreamController can run `apply.sh`
-- each button triggers the correct preset
-
-
----
-
-
-## 18. Recommended first-pass workflow
-
-
-If you want the shortest safe path, do these steps first:
-
-
-1. clone the repo
-2. install packages
-3. install `monctl`
-4. copy `config.yml`
-5. run `ddcutil detect`
-6. fix bus numbers
-7. re-scan input codes
-8. update `config.yml`
-9. verify `monctl set ...`
-10. test `monctl-gui`
-11. reconnect StreamController
-
-
-Once those are working, the rest is just polish.
+| Symptom | Fix |
+|---------|-----|
+| `ddcutil detect` finds no monitors | Check `i2c` group membership; re-login |
+| Wrong monitor changes | Bus numbers are swapped — re-detect and fix config |
+| `ddcutil` times out on one monitor | DDC/CI is disabled in that monitor's OSD |
+| `monctl: command not found` | `~/.local/bin` not on `$PATH`; add it to `~/.bashrc` or `~/.profile` |
+| GUI shows no monitors | Config file missing or empty — check `~/.config/monctl/config.yml` |
+| Stream Deck not detected | Install udev rule; replug device |

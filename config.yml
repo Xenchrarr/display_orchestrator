@@ -3,16 +3,16 @@ monitors:
     name: Top Dell
     bus: 9
     inputs:
-      Desktop: "0x0f"
-      Laptop: "0x10"
-      Switch: "0x11"
+      Desktop: "0x10"
+      Laptop: "0x11"
+      Orchestrator: "0x0f"
 
   bottom:
     name: Bottom Dell
     bus: 6
     inputs:
-      Desktop: "0x11"
-      Laptop: "0x0f"
+      Desktop: "0x12"
+      Laptop: "0x11"
 
   right:
     name: Right Dell
@@ -20,6 +20,7 @@ monitors:
     inputs:
       Desktop: "0x0f"
       Laptop: "0x12"
+      Switch: "0x13"
 
 presets:
   desktop_all:
@@ -50,7 +51,7 @@ presets:
       bottom: Laptop
       right: Laptop
 
-  switch_top:
-    name: Switch on top
+  orchestrator_top:
+    name: Orchestrator on top
     set:
-      top: Switch
+      top: Orchestrator

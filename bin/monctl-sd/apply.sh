@@ -7,6 +7,6 @@ if [[ -z "$preset" ]]; then
   exit 2
 fi
 
-/home/emil/.local/bin/monctl preset "$preset"
+monctl preset "$preset"
 #notify-send "MonCtl" "Applied preset: $preset" || true
 
