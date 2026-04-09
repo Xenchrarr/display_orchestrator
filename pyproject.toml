@@ -1,0 +1,16 @@
+[project]
+name = "monctl"
+version = "0.1.0"
+description = "Monitor input switcher (DDC/CI) for GNOME"
+requires-python = ">=3.10"
+dependencies = ["PyYAML"]
+
+[project.scripts]
+monctl = "monctl.cli:main"
+monctl-gui = "monctl.app:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
