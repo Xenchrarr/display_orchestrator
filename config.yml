@@ -1,0 +1,56 @@
+monitors:
+  top:
+    name: Top Dell
+    bus: 9
+    inputs:
+      Desktop: "0x0f"
+      Laptop: "0x10"
+      Switch: "0x11"
+
+  bottom:
+    name: Bottom Dell
+    bus: 6
+    inputs:
+      Desktop: "0x11"
+      Laptop: "0x0f"
+
+  right:
+    name: Right Dell
+    bus: 7
+    inputs:
+      Desktop: "0x0f"
+      Laptop: "0x12"
+
+presets:
+  desktop_all:
+    name: Desktop on all screens
+    set:
+      top: Desktop
+      bottom: Desktop
+      right: Desktop
+
+  laptop_all:
+    name: Laptop on all screens
+    set:
+      top: Laptop
+      bottom: Laptop
+      right: Laptop
+
+  split_d2_l1:
+    name: Desktop 2 + Laptop 1
+    set:
+      top: Laptop
+      bottom: Desktop
+      right: Desktop
+
+  split_d1_l2:
+    name: Desktop 1 + Laptop 2
+    set:
+      top: Desktop
+      bottom: Laptop
+      right: Laptop
+
+  switch_top:
+    name: Switch on top
+    set:
+      top: Switch

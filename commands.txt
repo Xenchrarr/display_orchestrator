@@ -1,0 +1,1 @@
+ ~/.local/bin/monctl-sd/apply.sh desktop_all
